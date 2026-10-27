@@ -58,8 +58,14 @@ async def health_check():
 
 
 # Mount production frontend build if available (Serves Web UI at /)
-FRONTEND_DIST = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../frontend/dist"))
-if os.path.isdir(FRONTEND_DIST):
+FRONTEND_DIST_CANDIDATES = [
+    os.path.abspath(os.path.join(os.path.dirname(__file__), "../../frontend/dist")),
+    os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../frontend/dist")),
+    "/app/frontend/dist",
+    "frontend/dist",
+]
+FRONTEND_DIST = next((p for p in FRONTEND_DIST_CANDIDATES if os.path.isdir(p)), None)
+if FRONTEND_DIST:
     app.mount("/", StaticFiles(directory=FRONTEND_DIST, html=True), name="frontend")
 
 
