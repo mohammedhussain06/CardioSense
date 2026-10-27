@@ -1,7 +1,7 @@
 [project]
 name = "cardiosense"
 version = "0.1.0"
-description = "Add your description here"
+description = "Intelligent Phonocardiogram (PCG) Heart Sound Analysis & Auscultation Decision Support Platform"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
@@ -9,6 +9,7 @@ dependencies = [
     "fastapi>=0.110.0",
     "httpx>=0.27.0",
     "huggingface-hub>=0.22.0",
+    "imageio-ffmpeg>=0.5.1",
     "librosa>=0.10.1",
     "matplotlib>=3.8.0",
     "numpy>=1.26.0",

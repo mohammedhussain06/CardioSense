@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { Theme } from '../../src/constants/theme';
 import { CardioSenseLogo } from '../../src/components/CardioSenseLogo';
 import { DisclaimerBanner } from '../../src/components/DisclaimerBanner';
+import { BackendStatusPill } from '../../src/components/BackendStatusPill';
 import {
   Heart,
   Clock,
@@ -24,12 +25,7 @@ export default function HomeScreen() {
       {/* Top Floating Pill Header matching Web */}
       <View style={styles.floatingHeader}>
         <CardioSenseLogo size={28} showText={true} />
-        <View style={styles.headerStatusPill}>
-          <View style={styles.greenPulse} />
-          <Text style={styles.pillText}>Sys Live</Text>
-          <Text style={styles.pillDivider}>|</Text>
-          <Text style={styles.pillId}>#CS-8921</Text>
-        </View>
+        <BackendStatusPill compact />
       </View>
 
       {/* Hero Badge */}

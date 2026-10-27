@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Platform } from 'react-native';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
@@ -23,7 +23,10 @@ import {
   ShieldCheck,
   FileAudio,
 } from 'lucide-react-native';
+import { BackendStatusPill } from '../../src/components/BackendStatusPill';
+import { ServerConfigModal } from '../../src/components/ServerConfigModal';
 import { CURATED_BENCHMARKS } from '../../src/constants/benchmarks';
+import { liveAudioRecorder } from '../../src/services/liveAudioRecorder';
 
 export default function StudioScreen() {
   const router = useRouter();
@@ -36,6 +39,20 @@ export default function StudioScreen() {
     null
   );
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
+  const [isServerModalOpen, setIsServerModalOpen] = useState(false);
+
+  // Live recording timer
+  useEffect(() => {
+    let interval: any = null;
+    if (isRecording) {
+      interval = setInterval(() => {
+        setRecordingSeconds((prev) => prev + 1);
+      }, 1000);
+    } else {
+      clearInterval(interval);
+    }
+    return () => clearInterval(interval);
+  }, [isRecording]);
 
   const {
     selectedSample,
@@ -119,24 +136,34 @@ export default function StudioScreen() {
     }
   };
 
-  // Handle toggle live recording
-  const handleToggleRecord = () => {
+  // Real live microphone recording handler
+  const handleToggleRecord = async () => {
     if (!isRecording) {
-      setIsRecording(true);
-      setRecordingSeconds(0);
+      try {
+        await liveAudioRecorder.start();
+        setIsRecording(true);
+        setRecordingSeconds(0);
+      } catch (err: any) {
+        Alert.alert(
+          'Microphone Permission Required',
+          err.message || 'Please grant microphone access in your device settings to capture live heart sounds.'
+        );
+      }
     } else {
-      setIsRecording(false);
-      const sampleId = 'a0007'; // Connect captured transducer audio
-      setSelectedSample({
-        id: sampleId,
-        title: 'Direct Live Auscultation',
-        condition: 'Normal',
-        clinical_context: 'Real-time captured electronic stethoscope acoustic signal.',
-        duration_sec: 35.7,
-        audio_url: `/api/sample-audios/${sampleId}`,
-      });
-      setStudioMode('active');
-      fetchBenchmarkPreview(sampleId);
+      try {
+        const result = await liveAudioRecorder.stop();
+        setIsRecording(false);
+        if (result.uri) {
+          // Real recorded hardware audio from phone/device microphone!
+          setSelectedSample(null);
+          setActiveAudio(result.uri, result.filename);
+          setStudioMode('active');
+          fetchPreview(result.uri, result.filename);
+        }
+      } catch (err: any) {
+        setIsRecording(false);
+        Alert.alert('Recording Failed', err.message || 'Could not finalize audio recording.');
+      }
     }
   };
 
@@ -161,11 +188,35 @@ export default function StudioScreen() {
       router.push(`/analysis/${data.session_id}`);
     },
     onError: (err: any) => {
-      const msg = err.message || 'Unable to complete inference.';
-      if (Platform.OS === 'web') {
-        window.alert(`Analysis Failed: ${msg}`);
+      const isNetwork = err?.isNetworkError;
+      const msg = err?.message || 'Unable to complete inference.';
+      if (isNetwork) {
+        Alert.alert(
+          'Server Connection Failed',
+          msg,
+          [
+            { text: 'Server Settings', onPress: () => setIsServerModalOpen(true) },
+            ...(selectedSample
+              ? [
+                  {
+                    text: 'View Offline Benchmark',
+                    onPress: async () => {
+                      const res = await Endpoints.predictBenchmarkSample(selectedSample.id);
+                      setLastAnalysisResult(res);
+                      router.push(`/analysis/${res.session_id}`);
+                    },
+                  },
+                ]
+              : []),
+            { text: 'OK', style: 'cancel' },
+          ]
+        );
       } else {
-        Alert.alert('Analysis Failed', msg);
+        if (Platform.OS === 'web') {
+          window.alert(`Analysis Failed: ${msg}`);
+        } else {
+          Alert.alert('Analysis Failed', msg);
+        }
       }
     },
   });
@@ -174,10 +225,7 @@ export default function StudioScreen() {
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       {/* Telemetry Node Header Bar */}
       <View style={styles.telemetryBar}>
-        <View style={styles.statusDotRow}>
-          <View style={styles.livePulseDot} />
-          <Text style={styles.telemetryNodeText}>ACOUSTIC TELEMETRY NODE // TIER-1</Text>
-        </View>
+        <BackendStatusPill />
 
         <View style={styles.tagPillRow}>
           <View style={styles.dspBadge}>
@@ -337,13 +385,27 @@ export default function StudioScreen() {
             <View style={styles.tabPanelCard}>
               <View style={styles.directNodePill}>
                 <View style={styles.greenPulseDot} />
-                <Text style={styles.directNodeText}>Direct Audio Input Node</Text>
+                <Text style={styles.directNodeText}>Phone Microphone / Transducer Node</Text>
               </View>
 
               <Text style={styles.panelTitle}>Live Phonocardiogram Capture</Text>
               <Text style={styles.panelDesc}>
-                Connect your electronic stethoscope or direct audio input. Click the bio-sensor disc below to start and stop capturing live heart sounds.
+                Capture heart sounds directly using your phone's built-in microphone or an external stethoscope.
               </Text>
+
+              {/* Smartphone Placement Protocol */}
+              <View style={styles.phoneGuideBox}>
+                <Text style={styles.phoneGuideTitle}>📱 Smartphone Recording Protocol:</Text>
+                <Text style={styles.phoneGuideStep}>
+                  <Text style={{ fontWeight: '700' }}>1. Microphone Contact:</Text> Place the <Text style={{ fontWeight: '700' }}>bottom edge of your phone</Text> (where the microphone & charging port are) firmly against <Text style={{ fontWeight: '700' }}>bare skin</Text> on your left chest, just below the nipple (Apex).
+                </Text>
+                <Text style={styles.phoneGuideStep}>
+                  <Text style={{ fontWeight: '700' }}>2. Acoustic Seal:</Text> Press gently but firmly to seal out ambient room noise. Do not slide the phone to avoid clothing/friction rustle.
+                </Text>
+                <Text style={styles.phoneGuideStep}>
+                  <Text style={{ fontWeight: '700' }}>3. Duration:</Text> Record for <Text style={{ fontWeight: '700', color: '#0284c7' }}>10 to 15 seconds</Text> while sitting in a quiet room and breathing gently.
+                </Text>
+              </View>
 
               <TouchableOpacity
                 activeOpacity={0.8}
@@ -360,6 +422,9 @@ export default function StudioScreen() {
                 <Text style={styles.durationLabel}>CAPTURE DURATION:</Text>
                 <Text style={styles.durationDigits}>
                   00:{recordingSeconds < 10 ? `0${recordingSeconds}` : recordingSeconds}.0
+                </Text>
+                <Text style={styles.durationTargetText}>
+                  {recordingSeconds < 10 ? '(Target: 10s - 15s)' : '✓ Sufficient sample length'}
                 </Text>
               </View>
             </View>
@@ -413,8 +478,16 @@ export default function StudioScreen() {
                 <FileAudio size={22} color="#0284c7" />
               </View>
               <View style={styles.trackDetailsCol}>
-                <Text style={styles.trackNameText}>{selectedSample?.title || activeFilename}</Text>
-                <Text style={styles.trackTypeText}>PhysioNet Benchmark Sample</Text>
+                <Text style={styles.trackNameText}>
+                  {selectedSample?.title || (activeFilename.includes('live') ? 'Live Auscultation Recording' : activeFilename)}
+                </Text>
+                <Text style={styles.trackTypeText}>
+                  {selectedSample
+                    ? 'PhysioNet Benchmark Sample'
+                    : activeFilename.includes('live')
+                    ? 'Real-Time Microphone / Electronic Stethoscope Capture'
+                    : 'Uploaded Custom Phonocardiogram Recording'}
+                </Text>
               </View>
             </View>
 
@@ -422,7 +495,13 @@ export default function StudioScreen() {
             <View style={styles.telemetryMiniGrid}>
               <View style={styles.miniCol}>
                 <Text style={styles.miniLabel}>TOTAL DURATION</Text>
-                <Text style={styles.miniVal}>{selectedSample?.duration_sec || 35.7}s</Text>
+                <Text style={styles.miniVal}>
+                  {selectedSample?.duration_sec
+                    ? `${selectedSample.duration_sec}s`
+                    : recordingSeconds > 0
+                    ? `${recordingSeconds}.0s`
+                    : '10.0s'}
+                </Text>
               </View>
               <View style={styles.miniCol}>
                 <Text style={styles.miniLabel}>SAMPLING RATE</Text>
@@ -481,6 +560,7 @@ export default function StudioScreen() {
                 waveformBase64={previewImages?.waveform}
                 spectrogramBase64={previewImages?.spectrogram}
                 title="Acoustic Signal Processing (DSP)"
+                isAbnormal={selectedSample?.condition === 'Abnormal'}
               />
             </View>
           )}
@@ -519,6 +599,11 @@ export default function StudioScreen() {
       </View>
 
       <DisclaimerBanner isCompact />
+
+      <ServerConfigModal
+        visible={isServerModalOpen}
+        onClose={() => setIsServerModalOpen(false)}
+      />
     </ScrollView>
   );
 }
@@ -1247,5 +1332,31 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: '700',
     color: '#16a34a',
+  },
+  phoneGuideBox: {
+    backgroundColor: '#f0f9ff',
+    borderWidth: 1,
+    borderColor: '#bae6fd',
+    borderRadius: 8,
+    padding: 10,
+    marginVertical: 12,
+  },
+  phoneGuideTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#0369a1',
+    marginBottom: 4,
+  },
+  phoneGuideStep: {
+    fontSize: 11,
+    color: '#334155',
+    lineHeight: 16,
+    marginTop: 3,
+  },
+  durationTargetText: {
+    fontSize: 11,
+    color: '#0284c7',
+    fontWeight: '600',
+    marginTop: 2,
   },
 });

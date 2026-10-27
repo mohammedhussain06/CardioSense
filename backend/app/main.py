@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 from backend.app.core.database import init_db
 from backend.app.api.predict import router as predict_router
@@ -27,7 +28,7 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Enable CORS for local React / Vite frontend
+# Enable CORS for local and deployed frontend/mobile clients
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -54,6 +55,12 @@ async def health_check():
         "compute_device": "cuda" if torch.cuda.is_available() else "cpu",
         "dsp_pipeline": "Butterworth 4th-Order 20-200Hz Bandpass + 2kHz Resampling"
     }
+
+
+# Mount production frontend build if available (Serves Web UI at /)
+FRONTEND_DIST = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../frontend/dist"))
+if os.path.isdir(FRONTEND_DIST):
+    app.mount("/", StaticFiles(directory=FRONTEND_DIST, html=True), name="frontend")
 
 
 if __name__ == "__main__":

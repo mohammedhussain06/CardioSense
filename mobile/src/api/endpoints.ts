@@ -11,6 +11,17 @@ import { Platform } from 'react-native';
 
 import * as FileSystem from 'expo-file-system';
 import { CURATED_BENCHMARKS } from '../constants/benchmarks';
+import { BENCHMARK_OFFLINE_REPORTS } from '../constants/benchmarkReports';
+
+function getAudioMimeType(name: string): string {
+  const lower = name.toLowerCase();
+  if (lower.endsWith('.m4a') || lower.endsWith('.mp4')) return 'audio/m4a';
+  if (lower.endsWith('.mp3')) return 'audio/mpeg';
+  if (lower.endsWith('.webm')) return 'audio/webm';
+  if (lower.endsWith('.ogg')) return 'audio/ogg';
+  if (lower.endsWith('.flac')) return 'audio/flac';
+  return 'audio/wav';
+}
 
 export const Endpoints = {
   /**
@@ -58,6 +69,7 @@ export const Endpoints = {
   ): Promise<PredictResponse> {
     try {
       const formData = new FormData();
+      const mimeType = getAudioMimeType(filename);
 
       if (typeof fileSource === 'string') {
         if (Platform.OS === 'web' && fileSource.startsWith('http')) {
@@ -70,7 +82,7 @@ export const Endpoints = {
           const downloadRes = await FileSystem.downloadAsync(fileSource, localTarget);
           const audioFile = {
             uri: downloadRes.uri,
-            type: 'audio/wav',
+            type: mimeType,
             name: filename,
           } as unknown as Blob;
           formData.append('file', audioFile);
@@ -78,7 +90,7 @@ export const Endpoints = {
           // Local file URI
           const audioFile = {
             uri: fileSource,
-            type: 'audio/wav',
+            type: mimeType,
             name: filename,
           } as unknown as Blob;
           formData.append('file', audioFile);
@@ -105,6 +117,7 @@ export const Endpoints = {
   ): Promise<{ waveform_image?: string; spectrogram_image?: string } | null> {
     try {
       const formData = new FormData();
+      const mimeType = getAudioMimeType(filename);
 
       if (Platform.OS === 'web' && fileSource.startsWith('http')) {
         const res = await fetch(fileSource);
@@ -115,14 +128,14 @@ export const Endpoints = {
         const downloadRes = await FileSystem.downloadAsync(fileSource, localTarget);
         const audioFile = {
           uri: downloadRes.uri,
-          type: 'audio/wav',
+          type: mimeType,
           name: filename,
         } as unknown as Blob;
         formData.append('file', audioFile);
       } else {
         const audioFile = {
           uri: fileSource,
-          type: 'audio/wav',
+          type: mimeType,
           name: filename,
         } as unknown as Blob;
         formData.append('file', audioFile);
@@ -140,6 +153,7 @@ export const Endpoints = {
 
   /**
    * Fast server-side direct benchmark prediction without uploading audio files
+   * Gracefully falls back to pre-validated benchmark report if backend is offline.
    */
   async predictBenchmarkSample(
     sampleId: string,
@@ -153,6 +167,10 @@ export const Endpoints = {
       const response = await apiClient.post<PredictResponse>(`/api/predict-sample/${sampleId}`, formData);
       return response.data;
     } catch (error) {
+      const cleanId = sampleId.replace('.wav', '').trim();
+      if (BENCHMARK_OFFLINE_REPORTS[cleanId]) {
+        return BENCHMARK_OFFLINE_REPORTS[cleanId];
+      }
       throw handleApiError(error);
     }
   },

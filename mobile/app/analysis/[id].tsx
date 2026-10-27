@@ -68,6 +68,7 @@ export default function AnalysisDetailScreen() {
       <SignalViewer
         waveformBase64={inference.waveform_image}
         spectrogramBase64={inference.spectrogram_image}
+        isAbnormal={inference.classification === 'Abnormal'}
       />
 
       {/* Per-Segment Murmur Timeline */}
