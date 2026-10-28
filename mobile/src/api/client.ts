@@ -1,7 +1,7 @@
 import axios, { AxiosError } from 'axios';
 import * as FileSystem from 'expo-file-system';
 
-const DEFAULT_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://192.168.1.106:8000';
+const DEFAULT_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://cardiosense-5o8a.onrender.com';
 const CONFIG_FILE = `${FileSystem.documentDirectory}cardiosense_api_url.txt`;
 
 export let API_BASE_URL = DEFAULT_URL;

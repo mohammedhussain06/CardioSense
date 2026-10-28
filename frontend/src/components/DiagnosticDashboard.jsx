@@ -22,7 +22,7 @@ import {
   AlertTriangle 
 } from 'lucide-react';
 
-export default function DiagnosticDashboard({ analysisData, onInspectAudit, onRerun }) {
+export default function DiagnosticDashboard({ analysisData, onInspectAudit, onRerun, onOpenReport }) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackTime, setPlaybackTime] = useState(0);
 
@@ -89,7 +89,14 @@ export default function DiagnosticDashboard({ analysisData, onInspectAudit, onRe
               </p>
             </div>
 
-            <div className="flex items-center gap-2 self-start lg:self-auto shrink-0">
+            <div className="flex items-center gap-2 self-start lg:self-auto shrink-0 flex-wrap">
+              <button 
+                onClick={onOpenReport}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-sky-600 hover:bg-sky-700 text-white font-label-md text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+              >
+                <FileText className="w-3.5 h-3.5" />
+                <span>Clinical Report (PDF)</span>
+              </button>
               <button 
                 onClick={onRerun}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-sky-50 hover:bg-sky-100 text-slate-800 font-label-md text-xs font-medium transition-colors border border-sky-200 cursor-pointer shadow-xs"
@@ -560,7 +567,10 @@ export default function DiagnosticDashboard({ analysisData, onInspectAudit, onRe
                 <Send className="w-3.5 h-3.5 text-sky-700" />
                 Send to EHR / DICOM-SR
               </button>
-              <button className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded bg-sky-600 hover:bg-sky-700 text-white font-label-md text-xs font-semibold shadow-xs transition-colors cursor-pointer">
+              <button 
+                onClick={onOpenReport}
+                className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded bg-sky-600 hover:bg-sky-700 text-white font-label-md text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+              >
                 <FileDown className="w-3.5 h-3.5" />
                 Export PDF Clinical Report
               </button>

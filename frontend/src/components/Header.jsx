@@ -1,7 +1,14 @@
 import React from 'react';
 import { CardioSenseLogo } from './CardioSenseLogo';
+import { Stethoscope, UserCheck } from 'lucide-react';
 
-export default function Header({ activeTab, setActiveTab, currentPatient }) {
+export default function Header({ 
+  activeTab, 
+  setActiveTab, 
+  currentPatient, 
+  currentDoctor, 
+  onOpenDoctorModal 
+}) {
   const navItems = [
     { id: 'landing', label: 'Overview' },
     { id: 'auscultation-studio', label: 'Auscultation Studio' },
@@ -44,13 +51,34 @@ export default function Header({ activeTab, setActiveTab, currentPatient }) {
         </nav>
 
         {/* Right Action Status & Launch CTA (Right) */}
-        <div className="flex items-center gap-2.5 sm:gap-3 flex-shrink-0">
+        <div className="flex items-center gap-2 sm:gap-2.5 flex-shrink-0">
+          {/* Doctor / Clinician Authentication Button */}
+          <button
+            onClick={onOpenDoctorModal}
+            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full border border-sky-200 bg-sky-50/70 hover:bg-sky-100 text-slate-800 hover:text-sky-900 transition-all cursor-pointer shadow-2xs group"
+            title={currentDoctor ? `Logged in: ${currentDoctor.name}` : 'Clinician Authentication Portal'}
+          >
+            {currentDoctor ? (
+              <div className="w-5 h-5 rounded-full bg-sky-600 text-white text-[10px] font-bold flex items-center justify-center shrink-0">
+                {currentDoctor.initials || 'MD'}
+              </div>
+            ) : (
+              <Stethoscope className="w-4 h-4 text-sky-600 shrink-0" />
+            )}
+            <span className="font-label-sm text-xs font-semibold max-w-[120px] sm:max-w-[150px] truncate">
+              {currentDoctor ? currentDoctor.name.replace(/,.*$/, '') : 'Clinician Login'}
+            </span>
+            {currentDoctor && (
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
+            )}
+          </button>
+
           {/* Live Node Status Pill */}
-          <div className="hidden md:flex items-center gap-2 px-3 py-1 rounded-full bg-sky-50 border border-sky-200/70 text-xs font-mono font-semibold text-slate-700 whitespace-nowrap shadow-2xs">
+          <div className="hidden xl:flex items-center gap-2 px-3 py-1 rounded-full bg-slate-50 border border-slate-200 text-xs font-mono font-semibold text-slate-700 whitespace-nowrap shadow-2xs">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse flex-shrink-0"></span>
             <span className="text-slate-800">Sys Live</span>
             <span className="text-slate-300">|</span>
-            <span className="text-sky-700">#CS-8921</span>
+            <span className="text-sky-700">{currentPatient?.tag?.replace('Patient ', '') || '#CS-8921'}</span>
           </div>
 
           {/* Action CTA Button */}

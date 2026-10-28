@@ -128,3 +128,39 @@
 }
 
 
+
+/* ==============================================================================
+   Print & PDF Export Directives
+   ============================================================================== */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 10mm 12mm;
+  }
+
+  body {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* Hide navigation, toolbars, and background elements */
+  .no-print, header, footer {
+    display: none !important;
+  }
+
+  /* Keep clinical sections intact across page breaks */
+  .print-avoid-break {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  #clinical-report-sheet {
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+  }
+}

@@ -6,6 +6,8 @@ import DiagnosticDashboard from './components/DiagnosticDashboard';
 import PatientRecordsAudit from './components/PatientRecordsAudit';
 import ModelQA from './components/ModelQA';
 import AuditInspectorModal from './components/AuditInspectorModal';
+import ClinicalReportModal from './components/ClinicalReportModal';
+import DoctorLoginModal from './components/DoctorLoginModal';
 import { Activity, ShieldCheck } from 'lucide-react';
 
 export default function App() {
@@ -14,8 +16,20 @@ export default function App() {
     tag: 'Patient #CS-8921',
     details: 'Male, 54y • Post-infarction murmur'
   });
+  const [currentDoctor, setCurrentDoctor] = useState({
+    id: 'DOC-8921',
+    name: 'Dr. Robert H. Jehning, MD, FACC',
+    email: 'dr.jehning@cardiosense.clinic',
+    role: 'Attending Cardiologist',
+    department: 'Division of Cardiovascular Medicine & Acoustics',
+    npi: '1849201948',
+    license: 'CA-829104',
+    initials: 'RJ'
+  });
   const [analysisData, setAnalysisData] = useState(null);
   const [inspectingSessionId, setInspectingSessionId] = useState(null);
+  const [isDoctorModalOpen, setIsDoctorModalOpen] = useState(false);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
 
   // Triggered when user runs audio analysis from Auscultation Studio
   const handleAnalysisComplete = (data) => {
@@ -30,6 +44,8 @@ export default function App() {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         currentPatient={currentPatient}
+        currentDoctor={currentDoctor}
+        onOpenDoctorModal={() => setIsDoctorModalOpen(true)}
       />
 
       {/* Main Workspace Page Body */}
@@ -54,6 +70,7 @@ export default function App() {
             analysisData={analysisData}
             onInspectAudit={(sessionId) => setInspectingSessionId(sessionId || 'REC-1049')}
             onRerun={() => setActiveTab('auscultation-studio')}
+            onOpenReport={() => setIsReportModalOpen(true)}
           />
         )}
 
@@ -82,9 +99,27 @@ export default function App() {
         />
       )}
 
+      {/* Doctor / Clinician Authentication Modal */}
+      <DoctorLoginModal
+        isOpen={isDoctorModalOpen}
+        onClose={() => setIsDoctorModalOpen(false)}
+        currentDoctor={currentDoctor}
+        onLogin={(doc) => setCurrentDoctor(doc)}
+        onLogout={() => setCurrentDoctor(null)}
+      />
+
+      {/* Clinical Grade Diagnostic Report Modal */}
+      <ClinicalReportModal
+        isOpen={isReportModalOpen}
+        onClose={() => setIsReportModalOpen(false)}
+        analysisData={analysisData}
+        currentPatient={currentPatient}
+        currentDoctor={currentDoctor}
+      />
+
       {/* Clinical Telemetry Footer for diagnostic workspaces */}
       {activeTab !== 'landing' && (
-        <footer className="w-full bg-white border-t border-sky-100 py-4 shadow-[0_-2px_10px_rgba(2,132,199,0.03)] mt-auto">
+        <footer className="w-full bg-white border-t border-sky-100 py-4 shadow-[0_-2px_10px_rgba(2,132,199,0.03)] mt-auto no-print">
           <div className="w-full max-w-7xl mx-auto px-4 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-3 text-slate-500 font-label-sm text-xs">
             <div className="flex items-center gap-2">
               <Activity className="w-4 h-4 text-sky-600" />
